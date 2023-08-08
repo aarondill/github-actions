@@ -1,0 +1,53 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build:
+    name: Publish binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [latest]
+        # node-version: [14.x, 16.x, 18.x, 20.x]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Check package-lock.json existence
+        id: check_lock
+        uses: andstor/file-existence-action@v2
+        with:
+          files: "package-lock.json"
+      - name: Check npm-shrinkwrap.json existence
+        id: check_shrinkwrap
+        if: steps.check_lock.outputs.files_exists == 'false'
+        uses: andstor/file-existence-action@v2
+        with:
+          files: "npm-shrinkwrap.json"
+
+      - name: Install npm dependencies (ci)
+      - env: LOCK_EXISTS = ${{ steps.check_lock.outputs.files_exists == 'true' || steps.check_shrinkwrap.outputs.files_exists == 'true' }}
+      - if: ${{ env.lock_exists }}
+      - run: npm ci
+      - name: Install npm dependencies (install)
+      - env: LOCK_EXISTS = ${{ steps.check_lock.outputs.files_exists == 'true' || steps.check_shrinkwrap.outputs.files_exists == 'true' }}
+      - if: ${{ !env.lock_exists }}
+      - run: npm ci
+
+      - run: npm install @vscode/vsce
+      - run: npm run ext:package
+      - run: ls
+      - name: Upload vsix file to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: "*.vsix"
+          overwrite: true
+          file_glob: true
