@@ -34,13 +34,13 @@ jobs:
           files: "npm-shrinkwrap.json"
 
       - name: Install npm dependencies (ci)
-      - env: LOCK_EXISTS = ${{ steps.check_lock.outputs.files_exists == 'true' || steps.check_shrinkwrap.outputs.files_exists == 'true' }}
-      - if: ${{ env.lock_exists }}
-      - run: npm ci
+        env: LOCK_EXISTS = ${{ steps.check_lock.outputs.files_exists == 'true' || steps.check_shrinkwrap.outputs.files_exists == 'true' }}
+        if: ${{ env.lock_exists }}
+        run: npm ci
       - name: Install npm dependencies (install)
-      - env: LOCK_EXISTS = ${{ steps.check_lock.outputs.files_exists == 'true' || steps.check_shrinkwrap.outputs.files_exists == 'true' }}
-      - if: ${{ !env.lock_exists }}
-      - run: npm install
+        env: LOCK_EXISTS = ${{ steps.check_lock.outputs.files_exists == 'true' || steps.check_shrinkwrap.outputs.files_exists == 'true' }}
+        if: ${{ !env.lock_exists }}
+        run: npm install
 
       - run: npm install @vscode/vsce
       - run: npm run ext:package
