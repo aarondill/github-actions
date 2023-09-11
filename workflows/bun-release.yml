@@ -1,0 +1,53 @@
+name: Publish Release From Master
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      # Other paths likely don't need to be published
+      - "src/**"
+      - "package.json"
+      - ".github/workflows/**"
+
+jobs:
+  build:
+    name: Publish Compiled
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to make a release
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install npm dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile
+        run: bun run build
+      - run: ls
+
+      - name: Set tag name
+        id: tag
+        run: printf '%s\n' "tag=v$(date +%Y%m%d.%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          tag: ${{ steps.tag.outputs.tag }}
+          omitBody: true
+          commit: ${{ github.sha }}
+          artifacts: ./dist/index.html
+          makeLatest: true
+          draft: false
+
+      - uses: eregon/keep-last-n-releases@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          n: 3
+          remove_tags_without_release: true
