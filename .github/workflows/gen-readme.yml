@@ -47,11 +47,6 @@ jobs:
           fetch-depth: ${{ env.wait_for_commits_plus_one }}
 
       # Check for changes to the template file or n+1 commits
-      - name: Check if ${{ inputs.template-file }} was updated
-        id: changed-files
-        uses: tj-actions/changed-files@v45
-        with:
-          files: ${{ inputs.template-file }} ${{ inputs.output-file }}
       - name: Check if we've waited long enough (${{ inputs.wait-for-commits }}+ commits)
         id: commit-count
         run: |
@@ -63,6 +58,13 @@ jobs:
             echo "count=$count" | tee -a "$GITHUB_OUTPUT"
           { [ $count -gt ${{ inputs.wait-for-commits }} ] && echo "success=true" || echo "success=false"; } | tee -a "$GITHUB_OUTPUT"
           fi
+      - name: Check if ${{ inputs.template-file }} was updated
+        id: changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: ${{ inputs.template-file }}
+          base_sha: ${{ steps.commit-count.output.last_sha }} # since our last check
+
       - name: Check if we should continue
         id: continue
         run: |
