@@ -22,10 +22,6 @@ on:
         required: false
         type: string
         default: "Lines of code"
-    secrets:
-      GITHUB_TOKEN:
-        description: "GitHub token"
-        required: true
   # push:
   # pull_request:
   #   paths:
