@@ -2,26 +2,32 @@ name: Generate README
 on:
   workflow_call:
     inputs:
-      wait-for-commits:
+      wait_for_commits:
         description: "Number of commits to wait for"
         required: false
         type: number
         default: 10
-  push:
-  pull_request:
-    paths:
-      - "README.md" # This isn't needed, but it's a good sanity check
-      - "README.tmpl.md"
-  workflow_dispatch:
+  # push:
+  # pull_request:
+  #   paths:
+  #     - "README.md" # This isn't needed, but it's a good sanity check
+  #     - "README.tmpl.md"
+  # workflow_dispatch:
 jobs:
   generate-readme:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - name: Hack to add one to the commit count
+        env:
+          COMMIT_COUNT: ${{ inputs.wait_for_commits }}
+        run: |
+          echo "wait_for_commits_plus_one=$((COMMIT_COUNT + 1))" >> $GITHUB_ENV
+
       - uses: actions/checkout@master
         with: # We need to fetch enough commits to check if we've waited long enough
-          fetch-depth: ${{ inputs.wait-for-commits + 1 }}
+          fetch-depth: ${{ env.wait_for_commits_plus_one }}
       - name: Check if we've waited long enough (10+ commits)
         id: commit-count
         continue-on-error: true
@@ -32,7 +38,7 @@ jobs:
           if [ -n "$last_sha" ]; then # success if last_sha is empty
             count=$(git rev-list $last_sha..HEAD --count)
             echo "count=$count"
-            [ $count -gt ${{ inputs.wait-for-commits }} ] || exit 1
+            [ $count -gt ${{ inputs.wait_for_commits }} ] || exit 1
           fi
       - name: Initialize README.md
         if: ${{ steps.commit-count.outcome == 'success' }}
