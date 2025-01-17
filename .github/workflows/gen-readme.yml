@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: "Lines of code"
+      commit:
+        description: "true if we should commit the changes"
+        required: false
+        type: boolean
+        default: true
   # push:
   # pull_request:
   #   paths:
@@ -82,7 +87,7 @@ jobs:
           rm cloc.md
       - name: Commit ${{ inputs.output-file }}
         uses: stefanzweifel/git-auto-commit-action@v4
-        if: ${{ steps.commit-count.outcome == 'success' }}
+        if: ${{ steps.commit-count.outcome == 'success' && inputs.commit == 'true' }}
         with:
           commit_message: "chore: Generate ${{ inputs.output-file }}"
           # Note: README.tmpl.md is needed in the first case
