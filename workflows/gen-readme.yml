@@ -1,5 +1,12 @@
 name: Generate README
 on:
+  workflow_call:
+    inputs:
+      wait-for-commits:
+        description: "Number of commits to wait for"
+        required: false
+        type: number
+        default: 10
   push:
   pull_request:
     paths:
@@ -14,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
         with: # We need to fetch enough commits to check if we've waited long enough
-          fetch-depth: 12
+          fetch-depth: ${{ inputs.wait-for-commits + 1 }}
       - name: Check if we've waited long enough (10+ commits)
         id: commit-count
         continue-on-error: true
@@ -25,7 +32,7 @@ jobs:
           if [ -n "$last_sha" ]; then # success if last_sha is empty
             count=$(git rev-list $last_sha..HEAD --count)
             echo "count=$count"
-            [ $count -gt 10 ] || exit 1
+            [ $count -gt ${{ inputs.wait-for-commits }} ] || exit 1
           fi
       - name: Initialize README.md
         if: ${{ steps.commit-count.outcome == 'success' }}
