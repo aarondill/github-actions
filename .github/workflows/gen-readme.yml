@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@master
         with: # We need to fetch enough commits to check if we've waited long enough
           fetch-depth: ${{ env.wait_for_commits_plus_one }}
-      - name: Check if we've waited long enough (${{ input.wait-for-commits }}+ commits)
+      - name: Check if we've waited long enough (${{ inputs.wait-for-commits }}+ commits)
         id: commit-count
         continue-on-error: true
         run: |
