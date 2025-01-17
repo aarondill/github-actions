@@ -58,8 +58,8 @@ jobs:
       - name: Initialize ${{ inputs.output-file }}
         if: ${{ steps.commit-count.outcome == 'success' }}
         run: |
-          [ -f ${{ inputs.template-file }} ] || cp ${{ inputs.output-file }} ${{inputs.template-file}}
-          printf '%s\n' "<!-- This file is generated from ${{ inputs.template-file }} -->" >> ${{ inputs.output-file }}
+          [ -f ${{ inputs.template-file }} ] || cp ${{ inputs.output-file }} ${{ inputs.template-file }}
+          printf '%s\n' "<!-- This file is generated from ${{ inputs.template-file }} -->" >| ${{ inputs.output-file }}
           cat ${{ inputs.template-file }} >> ${{ inputs.output-file }}
 
       - name: CLOC
