@@ -56,7 +56,7 @@ jobs:
           if [ -n "$last_sha" ]; then # success if last_sha is empty
             count=$(git rev-list $last_sha..HEAD --count)
             echo "count=$count" | tee -a "$GITHUB_OUTPUT"
-          { [ $count -gt ${{ inputs.wait-for-commits }} ] && echo "success=true" || echo "success=false"; } | tee -a "$GITHUB_OUTPUT"
+          { [ $count -gt "${{ inputs.wait-for-commits }}" ] && echo "success=true" || echo "success=false"; } | tee -a "$GITHUB_OUTPUT"
           fi
       - name: Check if ${{ inputs.template-file }} was updated
         id: changed-files
@@ -68,7 +68,7 @@ jobs:
       - name: Check if we should continue
         id: continue
         run: |
-          if [ ${{ steps.commit-count.output.success }} = 'true' ] || ${{ steps.changed-files.outputs.any_changed }} = 'true' ]; then
+          if [ '${{ steps.commit-count.output.success }}' = 'true' ] || '${{ steps.changed-files.outputs.any_changed }}' = 'true' ]; then
            echo "continue=true" 
           else
            echo "continue=false" 
@@ -77,10 +77,13 @@ jobs:
       # Do the actual work, if we should continue
       - name: Initialize ${{ inputs.output-file }}
         if: ${{ steps.continue.outputs.continue == 'true' }}
+        env:
+          TEMPLATE_FILE: ${{ inputs.template-file }}
+          OUTPUT_FILE: ${{ inputs.output-file }}
         run: |
-          [ -f ${{ inputs.template-file }} ] || cp ${{ inputs.output-file }} ${{ inputs.template-file }}
-          printf '%s\n' "<!-- This file is generated from ${{ inputs.template-file }} -->" >| ${{ inputs.output-file }}
-          cat ${{ inputs.template-file }} >> ${{ inputs.output-file }}
+          [ -f "$TEMPLATE_FILE" ] || cp "$OUTPUT_FILE" "$TEMPLATE_FILE"
+          printf '%s\n' "<!-- This file is generated from $TEMPLATE_FILE -->" >| "$OUTPUT_FILE"
+          cat "$TEMPLATE_FILE" >> "$OUTPUT_FILE"
 
       - name: CLOC
         if: ${{ steps.continue.outputs.continue == 'true' }}
@@ -95,10 +98,13 @@ jobs:
       # Note: initial newline is required because git files don't end with one
       - name: Update ${{ inputs.output-file }}
         if: ${{ steps.continue.outputs.continue == 'true' }}
+        env:
+          OUTPUT_FILE: ${{ inputs.output-file }}
+          HEADER: ${{ inputs.header }}
         run: |
-          printf '\n' >> ${{ inputs.output-file }}
-          printf '%s\n' '### ${{ inputs.header }}' "<sup><sub>Generated at commit ${{ github.sha }}</sub></sup>" >> ${{ inputs.output-file }}
-          cat cloc.md >> ${{ inputs.output-file }}
+          printf '\n' >> "$OUTPUT_FILE"
+          printf '%s\n' "### $HEADER" "<sup><sub>Generated at commit ${{ github.sha }}</sub></sup>" >> "$OUTPUT_FILE"
+          cat cloc.md >> "$OUTPUT_FILE"
           rm cloc.md
       - name: Commit ${{ inputs.output-file }}
         uses: stefanzweifel/git-auto-commit-action@v4
