@@ -39,47 +39,60 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Hack to add one to the commit count
+      - run: echo "wait_for_commits_plus_one=$((COMMIT_COUNT + 1))" >> $GITHUB_ENV
         env:
           COMMIT_COUNT: ${{ inputs.wait-for-commits }}
-        run: |
-          echo "wait_for_commits_plus_one=$((COMMIT_COUNT + 1))" >> $GITHUB_ENV
-
       - uses: actions/checkout@master
         with: # We need to fetch enough commits to check if we've waited long enough
           fetch-depth: ${{ env.wait_for_commits_plus_one }}
+
+      # Check for changes to the template file or n+1 commits
+      - name: Check if ${{ inputs.template-file }} was updated
+        id: changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: ${{ inputs.template-file }} ${{ inputs.output-file }}
       - name: Check if we've waited long enough (${{ inputs.wait-for-commits }}+ commits)
         id: commit-count
-        continue-on-error: true
         run: |
           [ '${{ github.event_name }}' != 'workflow_dispatch' ] || exit 0
           last_sha=$(git log --oneline --format=format:%H --grep="^chore: Generate README$" -1)
-          echo "last_sha=$last_sha"
+          echo "last_sha=$last_sha" | tee -a "$GITHUB_OUTPUT"
           if [ -n "$last_sha" ]; then # success if last_sha is empty
             count=$(git rev-list $last_sha..HEAD --count)
-            echo "count=$count"
-            [ $count -gt ${{ inputs.wait-for-commits }} ] || exit 1
+            echo "count=$count" | tee -a "$GITHUB_OUTPUT"
+          { [ $count -gt ${{ inputs.wait-for-commits }} ] && echo "success=true" || echo "success=false"; } | tee -a "$GITHUB_OUTPUT"
           fi
+      - name: Check if we should continue
+        id: continue
+        run: |
+          if [ ${{ steps.commit-count.output.success }} = 'true' ] || ${{ steps.changed-files.outputs.any_changed }} = 'true' ]; then
+           echo "continue=true" 
+          else
+           echo "continue=false" 
+          fi | tee -a "$GITHUB_OUTPUT"
+
+      # Do the actual work, if we should continue
       - name: Initialize ${{ inputs.output-file }}
-        if: ${{ steps.commit-count.outcome == 'success' }}
+        if: ${{ steps.continue.outputs.continue == 'true' }}
         run: |
           [ -f ${{ inputs.template-file }} ] || cp ${{ inputs.output-file }} ${{ inputs.template-file }}
           printf '%s\n' "<!-- This file is generated from ${{ inputs.template-file }} -->" >| ${{ inputs.output-file }}
           cat ${{ inputs.template-file }} >> ${{ inputs.output-file }}
 
       - name: CLOC
-        if: ${{ steps.commit-count.outcome == 'success' }}
+        if: ${{ steps.continue.outputs.continue == 'true' }}
         uses: docker://aldanial/cloc
         with: # Exclude YAML to avoid counting lock files
           args: ${{ github.sha }} --md --report-file=cloc.md --hide-rate --exclude-lang=YAML
 
       - name: output cloc.md
-        if: ${{ steps.commit-count.outcome == 'success' }}
+        if: ${{ steps.continue.outputs.continue == 'true' }}
         run: cat cloc.md
 
       # Note: initial newline is required because git files don't end with one
       - name: Update ${{ inputs.output-file }}
-        if: ${{ steps.commit-count.outcome == 'success' }}
+        if: ${{ steps.continue.outputs.continue == 'true' }}
         run: |
           printf '\n' >> ${{ inputs.output-file }}
           printf '%s\n' '### ${{ inputs.header }}' "<sup><sub>Generated at commit ${{ github.sha }}</sub></sup>" >> ${{ inputs.output-file }}
@@ -87,7 +100,7 @@ jobs:
           rm cloc.md
       - name: Commit ${{ inputs.output-file }}
         uses: stefanzweifel/git-auto-commit-action@v4
-        if: ${{ steps.commit-count.outcome == 'success' && inputs.commit == 'true' }}
+        if: ${{ steps.continue.outputs.continue == 'true' && inputs.commit == 'true' }}
         with:
           commit_message: "chore: Generate ${{ inputs.output-file }}"
           # Note: README.tmpl.md is needed in the first case
