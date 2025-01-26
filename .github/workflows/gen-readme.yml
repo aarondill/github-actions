@@ -50,14 +50,18 @@ jobs:
       - name: Check if we've waited long enough (${{ inputs.wait-for-commits }}+ commits)
         id: commit-count
         run: |
-          [ '${{ github.event_name }}' != 'workflow_dispatch' ] || exit 0
-          last_sha=$(git log --oneline --format=format:%H --grep="^chore: Generate README$" -1)
-          echo "last_sha=$last_sha" | tee -a "$GITHUB_OUTPUT"
-          if [ -n "$last_sha" ]; then # success if last_sha is empty
-            count=$(git rev-list $last_sha..HEAD --count)
-            echo "count=$count" | tee -a "$GITHUB_OUTPUT"
-          { [ $count -gt "${{ inputs.wait-for-commits }}" ] && echo "success=true" || echo "success=false"; } | tee -a "$GITHUB_OUTPUT"
+          ok=false
+          [ '${{ github.event_name }}' != 'workflow_dispatch' ] || ok=true
+          if ! "$ok"; then
+            last_sha=$(git log --oneline --format=format:%H --grep="^chore: Generate README$" -1)
+            echo "last_sha=$last_sha" | tee -a "$GITHUB_OUTPUT"
+            if [ -n "$last_sha" ]; then # success if last_sha is empty
+              count=$(git rev-list $last_sha..HEAD --count)
+              echo "count=$count" | tee -a "$GITHUB_OUTPUT"
+            if [ $count -gt "${{ inputs.wait-for-commits }}" ]; then ok=true; fi
+            fi
           fi
+          echo "success=$ok" | tee -a "$GITHUB_OUTPUT"
       - name: Check if ${{ inputs.template-file }} was updated
         id: changed-files
         uses: tj-actions/changed-files@v45
