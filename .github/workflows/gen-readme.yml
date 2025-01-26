@@ -67,12 +67,12 @@ jobs:
         uses: tj-actions/changed-files@v45
         with:
           files: ${{ inputs.template-file }}
-          base_sha: ${{ steps.commit-count.output.last_sha }} # since our last check
+          base_sha: ${{ steps.commit-count.outputs.last_sha }} # since our last check
 
       - name: Check if we should continue
         id: continue
         run: |
-          if [ '${{ steps.commit-count.output.success }}' = 'true' ] || '${{ steps.changed-files.outputs.any_changed }}' = 'true' ]; then
+          if [ '${{ steps.commit-count.outputs.success }}' = 'true' ] || '${{ steps.changed-files.outputs.any_changed }}' = 'true' ]; then
            echo "continue=true" 
           else
            echo "continue=false" 
