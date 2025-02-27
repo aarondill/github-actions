@@ -71,8 +71,10 @@ jobs:
 
       - name: Check if we should continue
         id: continue
+        env:
+          TEMPLATE_FILE: ${{ inputs.template-file }}
         run: |
-          if [ '${{ steps.commit-count.outputs.success }}' = 'true' ] || '${{ steps.changed-files.outputs.any_changed }}' = 'true' ]; then
+          if ! [ -f "$TEMPLATE_FILE" ] || [ '${{ steps.commit-count.outputs.success }}' = 'true' ] || '${{ steps.changed-files.outputs.any_changed }}' = 'true' ]; then
            echo "continue=true" 
           else
            echo "continue=false" 
