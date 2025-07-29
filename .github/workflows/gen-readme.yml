@@ -73,8 +73,9 @@ jobs:
         id: continue
         env:
           TEMPLATE_FILE: ${{ inputs.template-file }}
+          OUTPUT_FILE: ${{ inputs.output-file }}
         run: |
-          if ! [ -f "$TEMPLATE_FILE" ] || [ '${{ steps.commit-count.outputs.success }}' = 'true' ] || [ '${{ steps.changed-files.outputs.any_changed }}' = 'true' ]; then
+          if ! [ -f "$OUTPUT_FILE" ] || ! [ -f "$TEMPLATE_FILE" ] || [ '${{ steps.commit-count.outputs.success }}' = 'true' ] || [ '${{ steps.changed-files.outputs.any_changed }}' = 'true' ]; then
            echo "continue=true" 
           else
            echo "continue=false" 
