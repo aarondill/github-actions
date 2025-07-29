@@ -74,7 +74,7 @@ jobs:
         env:
           TEMPLATE_FILE: ${{ inputs.template-file }}
         run: |
-          if ! [ -f "$TEMPLATE_FILE" ] || [ '${{ steps.commit-count.outputs.success }}' = 'true' ] || '${{ steps.changed-files.outputs.any_changed }}' = 'true' ]; then
+          if ! [ -f "$TEMPLATE_FILE" ] || [ '${{ steps.commit-count.outputs.success }}' = 'true' ] || [ '${{ steps.changed-files.outputs.any_changed }}' = 'true' ]; then
            echo "continue=true" 
           else
            echo "continue=false" 
